@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+
 /*
   RoutingTable Entry 的定义如下：
   typedef struct {
@@ -18,6 +19,17 @@
   你可以在全局变量中把路由表以一定的数据结构格式保存下来。
 */
 
+struct RoutingList {
+  RoutingTableEntry entry;
+  RoutingList * next = NULL;
+  RoutingList() {
+  }
+  RoutingList(RoutingTableEntry e) {
+    entry = e;
+  }
+} first;
+
+
 /**
  * @brief 插入/删除一条路由表表项
  * @param insert 如果要插入则为 true ，要删除则为 false
@@ -28,6 +40,29 @@
  */
 void update(bool insert, RoutingTableEntry entry) {
   // TODO:
+  RoutingList * before;
+  RoutingList * now = &first;
+  RoutingList * next = first.next;
+  while (next != NULL) {
+    before = now;
+    now = next;
+    next = now->next;
+    if (now->entry.addr == entry.addr && now->entry.len == entry.len){
+      if (insert) {
+        now->entry.if_index = entry.if_index;
+        now->entry.nexthop = entry.nexthop;
+      }
+      else {
+        before->next = next;
+        delete now;
+      }
+      return;
+    }
+  }
+  if (insert) {
+    RoutingList * newRouting = new RoutingList(entry);
+    now->next = newRouting;
+  }
 }
 
 /**
@@ -39,7 +74,23 @@ void update(bool insert, RoutingTableEntry entry) {
  */
 bool query(uint32_t addr, uint32_t *nexthop, uint32_t *if_index) {
   // TODO:
-  *nexthop = 0;
-  *if_index = 0;
-  return false;
+  
+  bool res = false;
+  RoutingList * now = &first;
+  RoutingList * next = first.next;
+  uint32_t max_len = 0;
+  while (next != NULL) {
+    now = next;
+    next = now->next;
+    if (now->entry.len > max_len) {
+      uint32_t mask = (uint32_t)(((uint64_t)(0x0000000000000001) << now->entry.len) - 1);
+      if ((addr & mask) == (now->entry.addr & mask)) {
+        *nexthop = now->entry.nexthop;
+        *if_index = now->entry.if_index;
+        max_len = now->entry.len;
+        res = true;
+      }
+    }
+  }
+  return res;
 }

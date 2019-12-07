@@ -45,7 +45,56 @@
  */
 bool disassemble(const uint8_t *packet, uint32_t len, RipPacket *output) {
   // TODO:
-  return false;
+
+  uint16_t total_len = (packet[2] << 8) | (packet[3]);
+  if (total_len > len) {
+    return false;
+  }
+  uint8_t command = packet[28];
+  uint8_t version = packet[29];
+  uint8_t zero = packet[30] | packet[31];
+
+  //output = new RipPacket();
+  output->command = command;
+  output->numEntries = (len - 31) / 20;
+
+  for (uint32_t i = 0; i < output->numEntries; i++) {
+    //uint32_t numEntries = (len - 31) / 20;
+    uint16_t family = (packet[32 + i * 20] << 8) | (packet[33 + i * 20]);
+    uint8_t tag = packet[34 + i * 20] | packet[35 + i * 20];
+    if (!(((command == 2 && family == 2) || (command == 1 && family == 0)) && version == 2 && zero == 0 && tag == 0)) {
+      return false;
+    }
+    uint32_t addr = (packet[36 + i * 20]) | (packet[37 + i * 20] << 8) | (packet[38 + i * 20] << 16) | (packet[39 + i * 20] << 24);
+    uint32_t mask = (packet[40 + i * 20]) | (packet[41 + i * 20] << 8) | (packet[42 + i * 20] << 16) | (packet[43 + i * 20] << 24);
+    uint32_t nexthop = (packet[44 + i * 20]) | (packet[45 + i * 20] << 8) | (packet[46 + i * 20] << 16) | (packet[47 + i * 20] << 24);
+    uint32_t metric = (packet[48 + i * 20]) | (packet[49 + i * 20] << 8) | (packet[50 + i * 20] << 16) | (packet[51 + i * 20] << 24);
+    uint32_t metric_small = (packet[51 + i * 20]) | (packet[50 + i * 20] << 8) | (packet[49 + i * 20] << 16) | (packet[48 + i * 20] << 24);
+    if (metric_small < 1 || metric_small > 16) {
+      return false;
+    }
+    bool flag = true;
+    bool before = ((mask & 0x1) != 0);
+    for (int i = 0; i < 32; i++) {
+      uint32_t mask_mask = (0x00000001 << i);
+      bool now = ((mask & mask_mask) != 0);
+      if (now ^ before) {
+        if (flag) {
+          flag = false;
+        }
+        else {
+          return false;
+        }
+      }
+      before = now;
+    }
+    output->entries[i].addr = addr;
+    output->entries[i].mask = mask;
+    output->entries[i].nexthop = nexthop;
+    output->entries[i].metric = metric;
+  }
+
+  return true;
 }
 
 /**
@@ -60,5 +109,32 @@ bool disassemble(const uint8_t *packet, uint32_t len, RipPacket *output) {
  */
 uint32_t assemble(const RipPacket *rip, uint8_t *buffer) {
   // TODO:
-  return 0;
+  uint32_t len = 4 + 20 * rip->numEntries;
+  buffer[0] = rip->command;
+  buffer[1] = 2;
+  buffer[2] = 0;
+  buffer[3] = 0;
+  for (uint32_t i = 0; i < rip->numEntries; i++) {
+    buffer[4 + i * 20] = 0;
+    buffer[5 + i * 20] = (rip->command == 1) ? 0 : 2;
+    buffer[6 + i * 20] = 0;
+    buffer[7 + i * 20] = 0;
+    buffer[8 + i * 20] = (rip->entries[i].addr & 0x000000FF);
+    buffer[9 + i * 20] = ((rip->entries[i].addr >> 8) & 0x000000FF);
+    buffer[10 + i * 20] = ((rip->entries[i].addr >> 16) & 0x000000FF);
+    buffer[11 + i * 20] = ((rip->entries[i].addr >> 24) & 0x000000FF);
+    buffer[12 + i * 20] = (rip->entries[i].mask & 0x000000FF);
+    buffer[13 + i * 20] = ((rip->entries[i].mask >> 8) & 0x000000FF);
+    buffer[14 + i * 20] = ((rip->entries[i].mask >> 16) & 0x000000FF);
+    buffer[15 + i * 20] = ((rip->entries[i].mask >> 24) & 0x000000FF);
+    buffer[16 + i * 20] = (rip->entries[i].nexthop & 0x000000FF);
+    buffer[17 + i * 20] = ((rip->entries[i].nexthop >> 8) & 0x000000FF);
+    buffer[18 + i * 20] = ((rip->entries[i].nexthop >> 16) & 0x000000FF);
+    buffer[19 + i * 20] = ((rip->entries[i].nexthop >> 24) & 0x000000FF);
+    buffer[20 + i * 20] = (rip->entries[i].metric & 0x000000FF);
+    buffer[21 + i * 20] = ((rip->entries[i].metric >> 8) & 0x000000FF);
+    buffer[22 + i * 20] = ((rip->entries[i].metric >> 16) & 0x000000FF);
+    buffer[23 + i * 20] = ((rip->entries[i].metric >> 24) & 0x000000FF);
+  }
+  return len;
 }
