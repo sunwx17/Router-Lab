@@ -156,7 +156,7 @@ uint32_t assembleUDP(uint8_t *buffer, uint32_t riplen) {
 
 uint32_t assembleIP(uint8_t *buffer, uint32_t udplen, uint32_t src, uint32_t dst) {
   uint32_t len = udplen + 20;
-  buffer[0] = (4 << 4 + 5);
+  buffer[0] = ((4 << 4) + 5);
   buffer[1] = 0;
   buffer[2] = ((len >> 8) & 0x000000FF);
   buffer[3] = (len & 0x000000FF);
@@ -169,13 +169,13 @@ uint32_t assembleIP(uint8_t *buffer, uint32_t udplen, uint32_t src, uint32_t dst
   buffer[10] = 0;
   buffer[11] = 0;
   buffer[12] = (src && 0x000000FF);
-  buffer[13] = (src >> 8 && 0x000000FF);
-  buffer[14] = (src >> 16 && 0x000000FF);
-  buffer[15] = (src >> 24 && 0x000000FF);
+  buffer[13] = (((src >> 8) && 0x000000FF);
+  buffer[14] = ((src >> 16) && 0x000000FF);
+  buffer[15] = ((src >> 24) && 0x000000FF);
   buffer[16] = (dst && 0x000000FF);
-  buffer[17] = (dst >> 8 && 0x000000FF);
-  buffer[18] = (dst >> 16 && 0x000000FF);
-  buffer[19] = (dst >> 24 && 0x000000FF);
+  buffer[17] = ((dst >> 8) && 0x000000FF);
+  buffer[18] = ((dst >> 16) && 0x000000FF);
+  buffer[19] = ((dst >> 24) && 0x000000FF);
 
   int32_t sum = 0;
   for (uint8_t i = 0; i < (5 << 2); i += 2) {
