@@ -68,8 +68,8 @@ bool disassemble(const uint8_t *packet, uint32_t len, RipPacket *output) {
     uint32_t addr = (packet[36 + i * 20]) | (packet[37 + i * 20] << 8) | (packet[38 + i * 20] << 16) | (packet[39 + i * 20] << 24);
     uint32_t mask = (packet[40 + i * 20]) | (packet[41 + i * 20] << 8) | (packet[42 + i * 20] << 16) | (packet[43 + i * 20] << 24);
     uint32_t nexthop = (packet[44 + i * 20]) | (packet[45 + i * 20] << 8) | (packet[46 + i * 20] << 16) | (packet[47 + i * 20] << 24);
-    uint32_t metric = (packet[48 + i * 20]) | (packet[49 + i * 20] << 8) | (packet[50 + i * 20] << 16) | (packet[51 + i * 20] << 24);
-    uint32_t metric_small = (packet[51 + i * 20]) | (packet[50 + i * 20] << 8) | (packet[49 + i * 20] << 16) | (packet[48 + i * 20] << 24);
+    uint32_t metric = (packet[48 + i * 20] << 24) | (packet[49 + i * 20] << 16) | (packet[50 + i * 20] << 8) | (packet[51 + i * 20]);
+    uint32_t metric_small = (packet[51 + i * 20] << 24) | (packet[50 + i * 20] << 16) | (packet[49 + i * 20] << 8) | (packet[48 + i * 20]);
     if (metric_small < 1 || metric_small > 16) {
       return false;
     }
@@ -131,10 +131,10 @@ uint32_t assemble(const RipPacket *rip, uint8_t *buffer) {
     buffer[45 + i * 20] = ((rip->entries[i].nexthop >> 8) & 0x000000FF);
     buffer[46 + i * 20] = ((rip->entries[i].nexthop >> 16) & 0x000000FF);
     buffer[47 + i * 20] = ((rip->entries[i].nexthop >> 24) & 0x000000FF);
-    buffer[48 + i * 20] = (rip->entries[i].metric & 0x000000FF);
-    buffer[49 + i * 20] = ((rip->entries[i].metric >> 8) & 0x000000FF);
-    buffer[50 + i * 20] = ((rip->entries[i].metric >> 16) & 0x000000FF);
-    buffer[51 + i * 20] = ((rip->entries[i].metric >> 24) & 0x000000FF);
+    buffer[48 + i * 20] = ((rip->entries[i].metric >> 24) & 0x000000FF);
+    buffer[49 + i * 20] = ((rip->entries[i].metric >> 16) & 0x000000FF);
+    buffer[50 + i * 20] = ((rip->entries[i].metric >> 8) & 0x000000FF);
+    buffer[51 + i * 20] = ((rip->entries[i].metric) & 0x000000FF);
   }
   return len;
 }
@@ -168,14 +168,14 @@ uint32_t assembleIP(uint8_t *buffer, uint32_t udplen, uint32_t src, uint32_t dst
   buffer[9] = 17;
   buffer[10] = 0;
   buffer[11] = 0;
-  buffer[12] = (src && 0x000000FF);
-  buffer[13] = (((src >> 8) && 0x000000FF);
-  buffer[14] = ((src >> 16) && 0x000000FF);
-  buffer[15] = ((src >> 24) && 0x000000FF);
-  buffer[16] = (dst && 0x000000FF);
-  buffer[17] = ((dst >> 8) && 0x000000FF);
-  buffer[18] = ((dst >> 16) && 0x000000FF);
-  buffer[19] = ((dst >> 24) && 0x000000FF);
+  buffer[12] = (src & 0x000000FF);
+  buffer[13] = ((src >> 8) & 0x000000FF);
+  buffer[14] = ((src >> 16) & 0x000000FF);
+  buffer[15] = ((src >> 24) & 0x000000FF);
+  buffer[16] = (dst & 0x000000FF);
+  buffer[17] = ((dst >> 8) & 0x000000FF);
+  buffer[18] = ((dst >> 16) & 0x000000FF);
+  buffer[19] = ((dst >> 24) & 0x000000FF);
 
   int32_t sum = 0;
   for (uint8_t i = 0; i < (5 << 2); i += 2) {

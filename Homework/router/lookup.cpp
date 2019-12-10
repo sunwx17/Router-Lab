@@ -107,7 +107,7 @@ void get_packet(RipPacket * res) {
     next = now->next;
     res->command = 2;
     res->entries[l].addr = now->entry.addr;
-    res->entries[l].mask = now->entry.len;
+    res->entries[l].mask = (((uint64_t)1 << now->entry.len) - 1);
     res->entries[l].nexthop = now->entry.nexthop;
     res->entries[l].metric = now->entry.metric;
     l++;
