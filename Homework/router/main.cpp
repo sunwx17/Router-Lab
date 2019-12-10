@@ -30,14 +30,15 @@ uint32_t mask_len(uint32_t mask) {
 }
 
 char ip_buffer[20];
-char * ip_string(uint32_t addr){
+std::string ip_string(uint32_t addr){
   sprintf(ip_buffer, "%d.%d.%d.%d", addr & 0x000000FF, (addr >> 8) & 0x000000FF, (addr >> 16) & 0x000000FF, (addr >> 24) & 0x000000FF);
-  return ip_buffer;
+  return (std::string)ip_buffer;
 }
 
 char mac_buffer[20];
-char * mac_string(macaddr_t mac){
+std::string mac_string(macaddr_t mac){
   sprintf(mac_buffer, "%02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+  return std::string(mac_buffer);
 }
 
 uint8_t packet[2048];
@@ -97,7 +98,7 @@ int main(int argc, char *argv[]) {
         macaddr_t multicast_mac;
         HAL_ArpGetMacAddress(i, multicast_addr, multicast_mac);
         HAL_SendIPPacket(i, output, iplen, multicast_mac);
-        printf("Timer send packet from %08x(%s) to %08x(%s), port %d, len is %d, dst mac is %s.\n", addrs[i], ip_string(addrs[i]), multicast_addr, ip_string(multicast_addr), i, iplen, mac_string(multicast_mac));
+        printf("Timer send packet from %08x(%s) to %08x(%s), port %d, len is %d, dst mac is %s.\n", addrs[i], ip_string(addrs[i]).c_str(), multicast_addr, ip_string(multicast_addr).c_str(), i, iplen, mac_string(multicast_mac).c_str());
       }   
       
       printf("30s Timer\n");
@@ -150,7 +151,7 @@ int main(int argc, char *argv[]) {
       dst_is_me = true;
     }
 
-    printf("Rev packet from %08x(%s)(mac %s) to %08x(%s)(mac %s), port %d, len is %d, res is %d, dst is%sme\n", src_addr, ip_string(src_addr), mac_string(src_mac), dst_addr, ip_string(dst_addr), mac_string(dst_mac), if_index, sizeof(packet), res, dst_is_me?" ":" not ");
+    printf("Rev packet from %08x(%s)(mac %s) to %08x(%s)(mac %s), port %d, len is %d, res is %d, dst is%sme\n", src_addr, ip_string(src_addr).c_str(), mac_string(src_mac).c_str(), dst_addr, ip_string(dst_addr).c_str(), mac_string(dst_mac).c_str(), if_index, sizeof(packet), res, dst_is_me?" ":" not ");
 
 
 
@@ -182,7 +183,7 @@ int main(int argc, char *argv[]) {
           // if you don't want to calculate udp checksum, set it to zero
           // send it back
           HAL_SendIPPacket(if_index, output, iplen, src_mac);
-          printf("Response send packet from %08x(%s) to %08x(%s), port %d, len is %d, dst mac is %s.\n", addrs[if_index], ip_string(addrs[if_index]), src_addr, ip_string(src_addr), if_index, iplen, mac_string(src_mac));
+          printf("Response send packet from %08x(%s) to %08x(%s), port %d, len is %d, dst mac is %s.\n", addrs[if_index], ip_string(addrs[if_index]).c_str(), src_addr, ip_string(src_addr).c_str(), if_index, iplen, mac_string(src_mac).c_str());
         } else {
           // 3a.2 response, ref. RFC2453 3.9.2
           // update routing table
@@ -229,7 +230,7 @@ int main(int argc, char *argv[]) {
                 uint32_t udplen = assembleUDP(output, riplen);
                 uint32_t iplen  = assembleIP(output, udplen, addrs[if_index], src_addr);
                 HAL_SendIPPacket(if_index, output, iplen, src_mac);
-                printf("Update send packet from %08x(%s) to %08x(%s), port %d, len is %d, dst mac is %s.\n", addrs[if_index], ip_string(addrs[if_index]), src_addr, ip_string(src_addr), if_index, iplen, mac_string(src_mac));
+                printf("Update send packet from %08x(%s) to %08x(%s), port %d, len is %d, dst mac is %s.\n", addrs[if_index], ip_string(addrs[if_index]).c_str(), src_addr, ip_string(src_addr).c_str(), if_index, iplen, mac_string(src_mac).c_str());
               }
             }
           }
@@ -260,7 +261,7 @@ int main(int argc, char *argv[]) {
           forward(output, res);
           // TODO: you might want to check ttl=0 case
           HAL_SendIPPacket(dest_if, output, res, dest_mac);
-          printf("Send packet from %08x(%s) to %08x(%s), port %d, len is %d, dst mac is %s.\n", addrs[dest_if], ip_string(addrs[dest_if]), dst_addr, ip_string(dst_addr), dest_if, sizeof(packet), mac_string(dest_mac));
+          printf("Send packet from %08x(%s) to %08x(%s), port %d, len is %d, dst mac is %s.\n", addrs[dest_if], ip_string(addrs[dest_if]).c_str(), dst_addr, ip_string(dst_addr).c_str(), dest_if, sizeof(packet), mac_string(dest_mac).c_str());
         } else {
           // not found
           // you can drop it
