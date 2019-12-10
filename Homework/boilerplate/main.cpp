@@ -88,7 +88,7 @@ int main(int argc, char *argv[]) {
     int if_index;
     res = HAL_ReceiveIPPacket(mask, packet, sizeof(packet), src_mac, dst_mac,
                               1000, &if_index);
-    printf("packet: %s", packet);
+    //printf("packet\n", packet);
     if (res == HAL_ERR_EOF) {
       break;
     } else if (res < 0) {
@@ -243,6 +243,6 @@ int main(int argc, char *argv[]) {
       }
     }
   }
-  printf("%s", output);
+  //printf("%s", output);
   return 0;
 }
