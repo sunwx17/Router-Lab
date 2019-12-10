@@ -1,6 +1,7 @@
 #include "router.h"
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include "rip.h"
 
 
@@ -41,6 +42,8 @@ struct RoutingList {
  */
 void update(bool insert, RoutingTableEntry entry) {
   // TODO:
+  printf("update\n");
+  entry.print();
   RoutingList * before;
   RoutingList * now = &first;
   RoutingList * next = first.next;
