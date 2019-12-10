@@ -51,7 +51,7 @@ int main(int argc, char *argv[]) {
         .len = 24,        // small endian
         .if_index = i,    // small endian
         .nexthop = 0,      // big endian, means direct
-        .metric = 16
+        .metric = 1
     };
     update(true, entry);
   }
