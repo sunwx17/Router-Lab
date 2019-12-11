@@ -100,7 +100,7 @@ bool query(uint32_t addr, uint32_t *nexthop, uint32_t *if_index, uint32_t *metri
   return res;
 }
 
-void get_packet(RipPacket * res) {
+void get_packet(RipPacket * res, uint32_t if_index) {
   
   RoutingList * now = &first;
   RoutingList * next = first.next;
@@ -108,6 +108,9 @@ void get_packet(RipPacket * res) {
   while (next != NULL) {
     now = next;
     next = now->next;
+    if (now->entry.if_index == if_index){
+      continue;
+    }
     res->command = 2;
     res->entries[l].addr = now->entry.addr;
     res->entries[l].mask = (((uint64_t)1 << now->entry.len) - 1);
