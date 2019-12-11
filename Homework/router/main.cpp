@@ -22,9 +22,10 @@ extern uint32_t assembleIP(uint8_t *buffer, uint32_t udplen, uint32_t src, uint3
 extern void print_all_entry();
 
 uint32_t mask_len(uint32_t mask) {
+  //printf("mask: %08x", mask);
   for (int i = 0; i < 32; i++){
-    if (mask & (1 << i) == 0){
-      return i + 1;
+    if ((mask & (1 << i)) == 0){
+      return i;
     }
   }
   return 32;
@@ -49,7 +50,7 @@ uint8_t output[2048];
 // 2: 10.0.2.1
 // 3: 10.0.3.1
 // 你可以按需进行修改，注意端序
-in_addr_t addrs[N_IFACE_ON_BOARD] = {0x0203A8C0, 0x0104A8C0, 0x0102000a, 0x0103000a};
+in_addr_t addrs[N_IFACE_ON_BOARD] = {0x0103A8C0, 0x0101A8C0, 0x0102000a, 0x0103000a};
 
 
 in_addr_t multicast_addr = (9 << 24) + 224;
@@ -111,6 +112,7 @@ int main(int argc, char *argv[]) {
     int if_index;
     res = HAL_ReceiveIPPacket(mask, packet, sizeof(packet), src_mac, dst_mac,
                               1000, &if_index);
+    printf("res: %d\n", res);
     //printf("packet\n", packet);
     if (res == HAL_ERR_EOF) {
       break;
@@ -159,7 +161,13 @@ int main(int argc, char *argv[]) {
       // 3a.1
       RipPacket rip;
       // check and validate
+      printf("packet size: %d\n", sizeof(packet));
+      for (int i = 0; i < sizeof(packet); i++) {
+
+        //printf("%02x", packet[i]);
+      }
       if (disassemble(packet, res, &rip)) {
+        rip.print();
         if (rip.command == 1) {
           // 3a.3 request, ref. RFC2453 3.9.1
           // only need to respond to whole table requests in the lab
@@ -196,6 +204,7 @@ int main(int argc, char *argv[]) {
           for (uint32_t i = 0; i < rip.numEntries; i++) {
             if (rip.entries[i].metric < 15) {
               uint32_t nexthop, dest_if, metric;
+              //mask_len(rip.entries[i].mask);
               RoutingTableEntry new_entry = {
                 .addr = rip.entries[i].addr,
                 .len = mask_len(rip.entries[i].mask),
@@ -246,9 +255,11 @@ int main(int argc, char *argv[]) {
         // found
         macaddr_t dest_mac;
         // direct routing
+        printf("before nexthop: %08x(%s)\n", nexthop, ip_string(nexthop));
         if (nexthop == 0) {
           nexthop = dst_addr;
         }
+        printf("after nexthop: %08x(%s)\n", nexthop, ip_string(nexthop));
         if (HAL_ArpGetMacAddress(dest_if, nexthop, dest_mac) == 0) {
           // found
           memcpy(output, packet, res);

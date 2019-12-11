@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdio.h>
 #define RIP_MAX_ENTRY 25
 typedef struct {
   // all fields are big endian
@@ -17,4 +18,7 @@ typedef struct {
   // we don't store 'version', as it is always 2
   // we don't store 'zero', as it is always 0
   RipEntry entries[RIP_MAX_ENTRY];
+  void print() {
+    printf("commmand: %d, num: %d\n", command, numEntries);
+  }
 } RipPacket;

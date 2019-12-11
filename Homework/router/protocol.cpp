@@ -63,6 +63,7 @@ bool disassemble(const uint8_t *packet, uint32_t len, RipPacket *output) {
     uint16_t family = (packet[32 + i * 20] << 8) | (packet[33 + i * 20]);
     uint8_t tag = packet[34 + i * 20] | packet[35 + i * 20];
     if (!(((command == 2 && family == 2) || (command == 1 && family == 0)) && version == 2 && zero == 0 && tag == 0)) {
+      printf("command: %d, family: %d, version: %d, zero: %d, tag: %d, error 1\n");
       return false;
     }
     uint32_t addr = (packet[36 + i * 20]) | (packet[37 + i * 20] << 8) | (packet[38 + i * 20] << 16) | (packet[39 + i * 20] << 24);
@@ -70,7 +71,8 @@ bool disassemble(const uint8_t *packet, uint32_t len, RipPacket *output) {
     uint32_t nexthop = (packet[44 + i * 20]) | (packet[45 + i * 20] << 8) | (packet[46 + i * 20] << 16) | (packet[47 + i * 20] << 24);
     uint32_t metric = (packet[48 + i * 20] << 24) | (packet[49 + i * 20] << 16) | (packet[50 + i * 20] << 8) | (packet[51 + i * 20]);
     uint32_t metric_small = (packet[51 + i * 20] << 24) | (packet[50 + i * 20] << 16) | (packet[49 + i * 20] << 8) | (packet[48 + i * 20]);
-    if (metric_small < 1 || metric_small > 16) {
+    if (metric < 1 || metric > 16) {
+      printf("error 2\n");
       return false;
     }
     bool flag = true;
@@ -83,6 +85,7 @@ bool disassemble(const uint8_t *packet, uint32_t len, RipPacket *output) {
           flag = false;
         }
         else {
+      printf("error 3\n");
           return false;
         }
       }
