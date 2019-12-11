@@ -19,6 +19,7 @@ extern uint32_t assemble(const RipPacket *rip, uint8_t *buffer);
 extern void get_packet(RipPacket * res);
 extern uint32_t assembleUDP(uint8_t *buffer, uint32_t riplen);
 extern uint32_t assembleIP(uint8_t *buffer, uint32_t udplen, uint32_t src, uint32_t dst);
+extern void print_all_entry();
 
 uint32_t mask_len(uint32_t mask) {
   for (int i = 0; i < 32; i++){
@@ -48,8 +49,7 @@ uint8_t output[2048];
 // 2: 10.0.2.1
 // 3: 10.0.3.1
 // 你可以按需进行修改，注意端序
-in_addr_t addrs[N_IFACE_ON_BOARD] = {0x0100000a, 0x0101000a, 0x0102000a,
-                                     0x0103000a};
+in_addr_t addrs[N_IFACE_ON_BOARD] = {0x0203A8C0, 0x0104A8C0, 0x0102000a, 0x0103000a};
 
 
 in_addr_t multicast_addr = (9 << 24) + 224;
@@ -100,7 +100,7 @@ int main(int argc, char *argv[]) {
         HAL_SendIPPacket(i, output, iplen, multicast_mac);
         printf("Timer send packet from %08x(%s) to %08x(%s), port %d, len is %d, dst mac is %s.\n", addrs[i], ip_string(addrs[i]).c_str(), multicast_addr, ip_string(multicast_addr).c_str(), i, iplen, mac_string(multicast_mac).c_str());
       }   
-      
+      print_all_entry();
       printf("30s Timer\n");
       last_time = time;
     }

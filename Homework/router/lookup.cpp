@@ -118,3 +118,17 @@ void get_packet(RipPacket * res) {
   res->numEntries = l;
 }
 
+
+void print_all_entry(){
+  RoutingList * now = &first;
+  RoutingList * next = first.next;
+  uint32_t l = 0;
+  while (next != NULL) {
+    now = next;
+    next = now->next;
+    printf("the %d entry:\n", l);
+    now->entry.print();
+    l++;
+  }
+
+}
