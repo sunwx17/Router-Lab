@@ -8,6 +8,7 @@
 #include <string>
 
 
+
 typedef uint32_t in_addr_t;
 
 extern bool validateIPChecksum(uint8_t *packet, size_t len);
@@ -16,7 +17,7 @@ extern bool query(uint32_t addr, uint32_t *nexthop, uint32_t *if_index, uint32_t
 extern bool forward(uint8_t *packet, size_t len);
 extern bool disassemble(const uint8_t *packet, uint32_t len, RipPacket *output);
 extern uint32_t assemble(const RipPacket *rip, uint8_t *buffer);
-extern void get_packet(RipPacket * res, uint32_t if_index);
+extern void get_packet(vector<RipPacket> * res, uint32_t if_index);
 extern uint32_t assembleUDP(uint8_t *buffer, uint32_t riplen);
 extern uint32_t assembleIP(uint8_t *buffer, uint32_t udplen, uint32_t src, uint32_t dst);
 extern void print_all_entry();
@@ -90,16 +91,20 @@ int main(int argc, char *argv[]) {
       // send complete routing table to every interface
       // ref. RFC2453 3.8
       // multicast MAC for 224.0.0.9 is 01:00:5e:00:00:09
-      RipPacket rip;
+      vector<RipPacket> rip;
       for (uint32_t i = 0; i < N_IFACE_ON_BOARD; i++) {
         get_packet(&rip, i);
-        uint32_t riplen = assemble(&rip, output);
-        uint32_t udplen = assembleUDP(output, riplen);
-        uint32_t iplen  = assembleIP(output, udplen, addrs[i], multicast_addr);   
-        macaddr_t multicast_mac;
-        HAL_ArpGetMacAddress(i, multicast_addr, multicast_mac);
-        HAL_SendIPPacket(i, output, iplen, multicast_mac);
-        printf("Timer send packet from %08x(%s) to %08x(%s), port %d, len is %d, dst mac is %s.\n", addrs[i], ip_string(addrs[i]).c_str(), multicast_addr, ip_string(multicast_addr).c_str(), i, iplen, mac_string(multicast_mac).c_str());
+        for (uint32_t j = 0; j < rip.size(); j++) {
+          uint32_t riplen = assemble(&(rip[j]), output);
+          uint32_t udplen = assembleUDP(output, riplen);
+          uint32_t iplen  = assembleIP(output, udplen, addrs[i], multicast_addr);   
+          macaddr_t multicast_mac;
+          HAL_ArpGetMacAddress(i, multicast_addr, multicast_mac);
+          HAL_SendIPPacket(i, output, iplen, multicast_mac);
+          #ifdef DEBUG_OUTPUT
+          printf("Timer send packet from %08x(%s) to %08x(%s), port %d, len is %d, dst mac is %s.\n", addrs[i], ip_string(addrs[i]).c_str(), multicast_addr, ip_string(multicast_addr).c_str(), i, iplen, mac_string(multicast_mac).c_str());
+          #endif
+        }
       }   
       print_all_entry();
       printf("30s Timer\n");
@@ -112,7 +117,9 @@ int main(int argc, char *argv[]) {
     int if_index;
     res = HAL_ReceiveIPPacket(mask, packet, sizeof(packet), src_mac, dst_mac,
                               1000, &if_index);
+    #ifdef DEBUG_OUTPUT
     printf("res: %d\n", res);
+    #endif
     //printf("packet\n", packet);
     if (res == HAL_ERR_EOF) {
       break;
@@ -153,25 +160,30 @@ int main(int argc, char *argv[]) {
       dst_is_me = true;
     }
 
+    #ifdef DEBUG_OUTPUT
     printf("Rev packet from %08x(%s)(mac %s) to %08x(%s)(mac %s), port %d, len is %d, res is %d, dst is%sme\n", src_addr, ip_string(src_addr).c_str(), mac_string(src_mac).c_str(), dst_addr, ip_string(dst_addr).c_str(), mac_string(dst_mac).c_str(), if_index, sizeof(packet), res, dst_is_me?" ":" not ");
-
+    #endif
 
 
     if (dst_is_me) {
       // 3a.1
       RipPacket rip;
       // check and validate
+      #ifdef DEBUG_OUTPUT
       printf("packet size: %d\n", sizeof(packet));
       for (int i = 0; i < sizeof(packet); i++) {
 
         //printf("%02x", packet[i]);
       }
+      #endif
       if (disassemble(packet, res, &rip)) {
+        #ifdef DEBUG_OUTPUT
         rip.print();
+        #endif
         if (rip.command == 1) {
           // 3a.3 request, ref. RFC2453 3.9.1
           // only need to respond to whole table requests in the lab
-          RipPacket resp;
+          vector<RipPacket> resp;
           // TODO: fill resp
           get_packet(&resp, if_index);
           // assemble
@@ -184,14 +196,18 @@ int main(int argc, char *argv[]) {
           //output[21] = 0x08;
           // ...
           // RIP
-          uint32_t riplen = assemble(&resp, output);
-          uint32_t udplen = assembleUDP(output, riplen);
-          uint32_t iplen  = assembleIP(output, udplen, addrs[if_index], src_addr);
-          // checksum calculation for ip and udp
-          // if you don't want to calculate udp checksum, set it to zero
-          // send it back
-          HAL_SendIPPacket(if_index, output, iplen, src_mac);
-          printf("Response send packet from %08x(%s) to %08x(%s), port %d, len is %d, dst mac is %s.\n", addrs[if_index], ip_string(addrs[if_index]).c_str(), src_addr, ip_string(src_addr).c_str(), if_index, iplen, mac_string(src_mac).c_str());
+          for (uint32_t j = 0; j < resp.size(); j++) {
+            uint32_t riplen = assemble(&(resp[j]), output);
+            uint32_t udplen = assembleUDP(output, riplen);
+            uint32_t iplen  = assembleIP(output, udplen, addrs[if_index], src_addr);
+            // checksum calculation for ip and udp
+            // if you don't want to calculate udp checksum, set it to zero
+            // send it back
+            HAL_SendIPPacket(if_index, output, iplen, src_mac);
+            #ifdef DEBUG_OUTPUT
+            printf("Response send packet from %08x(%s) to %08x(%s), port %d, len is %d, dst mac is %s.\n", addrs[if_index], ip_string(addrs[if_index]).c_str(), src_addr, ip_string(src_addr).c_str(), if_index, iplen, mac_string(src_mac).c_str());
+            #endif
+          }
         } else {
           // 3a.2 response, ref. RFC2453 3.9.2
           // update routing table
@@ -233,13 +249,17 @@ int main(int argc, char *argv[]) {
             trigger_flag = false;
             for (int i = 0; i < N_IFACE_ON_BOARD; i++) {
               if (i != if_index){
-                RipPacket resp;
+                vector<RipPacket> resp;
                 get_packet(&resp, i);
-                uint32_t riplen = assemble(&resp, output);
-                uint32_t udplen = assembleUDP(output, riplen);
-                uint32_t iplen  = assembleIP(output, udplen, addrs[i], src_addr);
-                HAL_SendIPPacket(i, output, iplen, src_mac);
-                printf("Update send packet from %08x(%s) to %08x(%s), port %d, len is %d, dst mac is %s.\n", addrs[i], ip_string(addrs[i]).c_str(), src_addr, ip_string(src_addr).c_str(), i, iplen, mac_string(src_mac).c_str());
+                for (uint32_t j = 0;j < resp.size(); j++) {
+                  uint32_t riplen = assemble(&(resp[j]), output);
+                  uint32_t udplen = assembleUDP(output, riplen);
+                  uint32_t iplen  = assembleIP(output, udplen, addrs[i], src_addr);
+                  HAL_SendIPPacket(i, output, iplen, src_mac);
+                  #ifdef DEBUG_OUTPUT
+                  printf("Update send packet from %08x(%s) to %08x(%s), port %d, len is %d, dst mac is %s.\n", addrs[i], ip_string(addrs[i]).c_str(), src_addr, ip_string(src_addr).c_str(), i, iplen, mac_string(src_mac).c_str());
+                  #endif
+                }
               }
             }
           }
@@ -255,11 +275,11 @@ int main(int argc, char *argv[]) {
         // found
         macaddr_t dest_mac;
         // direct routing
-        printf("before nexthop: %08x(%s)\n", nexthop, ip_string(nexthop));
+        //printf("before nexthop: %08x(%s)\n", nexthop, ip_string(nexthop));
         if (nexthop == 0) {
           nexthop = dst_addr;
         }
-        printf("after nexthop: %08x(%s)\n", nexthop, ip_string(nexthop));
+        //printf("after nexthop: %08x(%s)\n", nexthop, ip_string(nexthop));
         if (HAL_ArpGetMacAddress(dest_if, nexthop, dest_mac) == 0) {
           // found
           memcpy(output, packet, res);
@@ -272,7 +292,9 @@ int main(int argc, char *argv[]) {
           forward(output, res);
           // TODO: you might want to check ttl=0 case
           HAL_SendIPPacket(dest_if, output, res, dest_mac);
+          #ifdef DEBUG_OUTPUT
           printf("Send packet from %08x(%s) to %08x(%s), port %d, len is %d, dst mac is %s.\n", addrs[dest_if], ip_string(addrs[dest_if]).c_str(), dst_addr, ip_string(dst_addr).c_str(), dest_if, sizeof(packet), mac_string(dest_mac).c_str());
+          #endif
         } else {
           // not found
           // you can drop it

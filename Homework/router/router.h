@@ -1,9 +1,12 @@
 #ifndef ROUTER_H
 #define ROUTER_H
 
+#include "debug.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <string>
+#include <vector>
+using namespace std;
 
 extern std::string ip_string(uint32_t addr);
 

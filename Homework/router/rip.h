@@ -1,3 +1,4 @@
+#include "debug.h"
 #include <stdint.h>
 #include <stdio.h>
 #define RIP_MAX_ENTRY 25

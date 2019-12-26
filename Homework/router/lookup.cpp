@@ -31,6 +31,7 @@ struct RoutingList {
   }
 } first;
 
+int entry_num = 0;
 
 /**
  * @brief 插入/删除一条路由表表项
@@ -42,8 +43,11 @@ struct RoutingList {
  */
 void update(bool insert, RoutingTableEntry entry) {
   // TODO:
+  
+  #ifdef DEBUG_OUTPUT
   printf("update\n");
   entry.print();
+  #endif
   RoutingList * before;
   RoutingList * now = &first;
   RoutingList * next = first.next;
@@ -55,10 +59,12 @@ void update(bool insert, RoutingTableEntry entry) {
       if (insert) {
         now->entry.if_index = entry.if_index;
         now->entry.nexthop = entry.nexthop;
+        entry_num += 1;
       }
       else {
         before->next = next;
         delete now;
+        entry_num -= 1;
       }
       return;
     }
@@ -66,6 +72,7 @@ void update(bool insert, RoutingTableEntry entry) {
   if (insert) {
     RoutingList * newRouting = new RoutingList(entry);
     now->next = newRouting;
+    entry_num += 1;
   }
 }
 
@@ -100,38 +107,51 @@ bool query(uint32_t addr, uint32_t *nexthop, uint32_t *if_index, uint32_t *metri
   return res;
 }
 
-void get_packet(RipPacket * res, uint32_t if_index) {
+void get_packet(vector<RipPacket> * res, uint32_t if_index) {
   
   RoutingList * now = &first;
   RoutingList * next = first.next;
   uint32_t l = 0;
+  RipPacket temp_p;
   while (next != NULL) {
     now = next;
     next = now->next;
     if (now->entry.if_index == if_index){
       continue;
     }
-    res->command = 2;
-    res->entries[l].addr = now->entry.addr;
-    res->entries[l].mask = (((uint64_t)1 << now->entry.len) - 1);
-    res->entries[l].nexthop = now->entry.nexthop;
-    res->entries[l].metric = now->entry.metric;
+    temp_p.command = 2;
+    temp_p.entries[l].addr = now->entry.addr;
+    temp_p.entries[l].mask = (((uint64_t)1 << now->entry.len) - 1);
+    temp_p.entries[l].nexthop = now->entry.nexthop;
+    temp_p.entries[l].metric = now->entry.metric;
     l++;
+    if (l >= 24) {
+      temp_p.numEntries = l;
+      res->push_back(temp_p);
+      l = 0;
+    }
   }
-  res->numEntries = l;
+  if (l < 24) {
+    temp_p.numEntries = l;
+    res->push_back(temp_p);
+  }
 }
 
 
 void print_all_entry(){
-  RoutingList * now = &first;
-  RoutingList * next = first.next;
-  uint32_t l = 0;
-  while (next != NULL) {
-    now = next;
-    next = now->next;
-    printf("the %d entry:\n", l);
-    now->entry.print();
-    l++;
+  if (entry_num > 25) {
+    RoutingList * now = &first;
+    RoutingList * next = first.next;
+    uint32_t l = 0;
+    while (next != NULL) {
+      now = next;
+      next = now->next;
+      printf("the %d entry:\n", l);
+      now->entry.print();
+      l++;
+    }
   }
-
+  else {
+    printf("total %d entries\n", entry_num);
+  }
 }
